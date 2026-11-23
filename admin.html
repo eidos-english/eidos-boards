@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Eidos English · уроки</title>
+<link rel="icon" href="units/b1u1/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap">
+<link rel="stylesheet" href="font.css">
+<link rel="stylesheet" href="base.css?v=1">
+<style>
+.adm{max-width:860px;margin:0 auto;padding:28px 16px 60px}
+.adm h1{font-family:var(--display);font-weight:400;color:var(--accent);font-size:30px;margin:0 0 6px}
+.adm .lead{margin:0 0 22px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.adm input,.adm select{font:700 15px var(--body);padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);min-width:0}
+.adm input{flex:1 1 220px}
+.btn{font:800 14px var(--body);padding:9px 16px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.warn{border-color:var(--warn);color:var(--warn);background:transparent}
+.btn:disabled{opacity:.5;cursor:default}
+.lesson h2{margin:0 0 2px;font-size:18px}
+.meta{color:var(--mu);font-size:13px;margin:0 0 12px}
+.link{display:grid;grid-template-columns:110px 1fr auto auto;gap:8px;align-items:center;margin:0 0 8px}
+.link b{font-size:14px}
+.link code{font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:620px){.link{grid-template-columns:1fr auto auto}.link b{grid-column:1/-1}}
+.msg{color:var(--mu)}
+.err{color:var(--warn);font-weight:700}
+:root[data-theme="dark"] .adm h1{color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .adm h1{color:#fff}}
+</style>
+</head>
+<body>
+<main class="adm">
+  <h1>Eidos English · уроки</h1>
+  <p class="lead">Створіть урок і надішліть два посилання: одне викладачу, друге учню. Дошку ніхто з них змінити не може, вони тільки малюють і пишуть поверх, і все зберігається.</p>
+  <div id="signin" class="box" hidden>
+    <p>Увійдіть своїм Google-акаунтом, щоб керувати уроками.</p>
+    <button class="btn" id="googleBtn" type="button">Увійти через Google</button>
+    <p class="err" id="signinErr" hidden></p>
+  </div>
+  <div id="panel" hidden>
+    <div class="box">
+      <div class="row">
+        <input id="name" placeholder="Назва, наприклад: Влада + Ангеліна" maxlength="80" aria-label="Назва уроку">
+        <select id="unit" aria-label="Дошка"><option value="b1u1">Up · B1 Unit 1</option></select>
+        <button class="btn" id="newBtn" type="button">＋ Новий урок</button>
+      </div>
+      <p class="err" id="newErr" hidden></p>
+    </div>
+    <div id="list"><p class="msg">Завантаження…</p></div>
+    <p class="meta"><span id="who"></span> · <a href="#" id="outBtn">вийти</a></p>
+  </div>
+  <p class="err" id="fatal" hidden></p>
+</main>
+<script type="module" src="admin.js?v=1"></script>
+</body>
+</html>

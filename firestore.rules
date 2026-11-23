@@ -1,0 +1,56 @@
+rules_version = '2';
+// Eidos boards. Replace ADMIN_EMAIL with the owner's Google address before pasting into Firebase.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && request.auth.token.email == 'ADMIN_EMAIL'
+        && request.auth.token.email_verified == true;
+    }
+    function lessonPath(L) { return /databases/$(database)/documents/lessons/$(L); }
+    function isTeacher(L) {
+      return signedIn() && exists(/databases/$(database)/documents/lessons/$(L)/teachers/$(request.auth.uid));
+    }
+
+    match /lessons/{L} {
+      // the lesson id in the link is the secret: anyone with it may open the lesson
+      allow get: if signedIn();
+      allow list: if isAdmin() && resource.data.owner == request.auth.uid;
+      allow create: if isAdmin() && request.resource.data.owner == request.auth.uid;
+      allow update, delete: if isAdmin() && resource.data.owner == request.auth.uid;
+
+      match /private/{d} {
+        allow read, write: if isAdmin();
+      }
+
+      // a teacher link proves itself once by carrying the lesson's teacher key
+      match /teachers/{uid} {
+        allow get: if signedIn() && uid == request.auth.uid;
+        allow create: if signedIn() && uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['k', 'at'])
+          && request.resource.data.k == get(/databases/$(database)/documents/lessons/$(L)/private/key).data.k;
+      }
+
+      // where the teacher is in the lesson (page and zoom)
+      match /live/{d} {
+        allow read: if signedIn();
+        allow write: if isTeacher(L) || isAdmin();
+      }
+
+      // one note per document; everyone in the lesson sees all of them
+      match /ink/{id} {
+        allow read: if signedIn() && exists(lessonPath(L));
+        allow create: if signedIn() && exists(lessonPath(L))
+          && request.resource.data.by == request.auth.uid
+          && request.resource.data.keys().hasOnly(['tab', 'h', 't', 'by'])
+          && request.resource.data.h is string && request.resource.data.h.size() < 300000
+          && request.resource.data.tab is string && request.resource.data.tab.size() < 16;
+        allow update: if signedIn() && resource.data.by == request.auth.uid
+          && request.resource.data.by == request.auth.uid
+          && request.resource.data.keys().hasOnly(['tab', 'h', 't', 'by'])
+          && request.resource.data.h is string && request.resource.data.h.size() < 300000;
+        allow delete: if signedIn() && (resource.data.by == request.auth.uid || isTeacher(L) || isAdmin());
+      }
+    }
+  }
+}

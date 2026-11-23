@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Eidos English · lesson board</title>
+<link rel="icon" href="units/b1u1/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap">
+<link rel="stylesheet" href="font.css">
+<link rel="stylesheet" href="base.css?v=1">
+</head>
+<body>
+<div id="app"><p style="padding:24px;font:16px system-ui">Loading the lesson…</p></div>
+<script>window.EIDOS_FB=new Promise(function(r){window.__fbSet=r});</script>
+<script src="state.js?v=1"></script>
+<script src="app.js?v=1"></script>
+<script type="module">
+import('./fb.js?v=1').then(m=>window.__fbSet(m.start())).catch(e=>window.__fbSet(Promise.reject(e)));
+</script>
+</body>
+</html>
