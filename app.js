@@ -43,7 +43,7 @@ let roleKnown=false;
 function inkGet(k){try{return (canEdit?sessionStorage:localStorage).getItem(k)}catch(e){return null}}
 function inkPut(k,v){try{(canEdit?sessionStorage:localStorage).setItem(k,v)}catch(e){}}
 
-let FB=null,ROLE='solo';
+let FB=null,ROLE='solo',LOCKED=false;
 function refreshRole(){
   const r=$('#role');if(r)r.hidden=!canEdit,r.textContent='✏️ You can edit these boards. Teachers you share the link with can only draw and write on top.';
   const eb=$('#editBtn');if(eb)eb.hidden=!canEdit;const wb=$('#wipeBtn');if(wb)wb.hidden=!canEdit;
@@ -402,6 +402,7 @@ let inkUid=0;const newId=()=>Date.now().toString(36)+'-'+Math.random().toString(
 const mine=n=>!FB||n.getAttribute('data-by')===FB.uid;
 const canTouch=n=>!FB||ROLE==='teacher'||mine(n);
 function inkSave(){
+  if(LOCKED&&ROLE!=='teacher'){inkLoad();return}
   if(!FB){inkPut(KEY(),$('#ink').innerHTML);return}
   const ink=$('#ink'),seen=new Set();
   for(const n of [...ink.children]){
@@ -535,7 +536,13 @@ function initLive(){if(liveOn||!FB)return;liveOn=true;
     const ca=camApply;camApply=function(){const r=ca.apply(this,arguments);send();return r};
     const rd=render;render=function(){const r=rd.apply(this,arguments);send();return r};
     liveStartHook=()=>{if(!on)set(true)};
-    FB.watchLive(d=>{if(first&&d&&d.on){on=true;label()}first=false},()=>{});
+    /* lock: students only watch while the teacher explains */
+    const lb=document.createElement('button');lb.type='button';lb.className='tool';lb.id='lockBtn';btn.after(lb);let locked=false;
+    const llabel=()=>{lb.textContent=locked?'🔒 Students: watch only':'🖍 Students: can draw';lb.setAttribute('aria-pressed',locked)};
+    lb.onclick=()=>{locked=!locked;llabel();FB.setLive({lock:locked}).catch(()=>toast('Could not reach the lesson. Check the internet connection.'));
+      toast(locked?'Students can only watch now. Press again to let them draw.':'Students can draw and write again.')};
+    llabel();
+    FB.watchLive(d=>{if(first&&d){if(d.on){on=true;label()}locked=!!d.lock;llabel()}first=false},()=>{});
     label();
   }else{
     let follow=false,on=false,L={on:false};
@@ -544,7 +551,12 @@ function initLive(){if(liveOn||!FB)return;liveOn=true;
       if(typeof L.tab==='string'&&L.tab!==cur&&L.tab!=='keys'&&TABS.some(t=>t.id===L.tab)){cur=L.tab;try{history.replaceState(null,'','#'+unitId+'/'+cur)}catch(e){}render()}
       Z=Math.min(8,Math.max(1,+L.z||1));TX=(+L.tx||0)*stage.clientWidth;TY=(+L.ty||0)*stage.clientHeight;camApply(true)};
     btn.onclick=()=>{if(!on){toast('The lesson has not started yet. When the teacher starts it, press this button.');return}follow=!follow;label();apply()};
-    FB.watchLive(d=>{const was=on;L=d||{on:false};on=!!L.on;
+    let locked=false;
+    const lockUI=v=>{if(v===locked)return;locked=v;LOCKED=v;
+      document.querySelectorAll('.an').forEach(b=>{if(b.dataset.t!=='view'){b.disabled=v;b.title=v?'The teacher has paused drawing':''}});
+      ['#undoBtn','#clearBtn'].forEach(q=>{const b=$(q);if(b)b.disabled=v});
+      if(v){setTool('view');toast('🔒 The teacher has paused drawing. You can watch.')}else toast('🖍 You can draw and write again.')};
+    FB.watchLive(d=>{lockUI(!!(d&&d.lock));const was=on;L=d||{on:false};on=!!L.on;
       if(on&&!was)toast('The teacher started the lesson. Press “📡 Follow the teacher”.');
       if(!on&&was){follow=false;toast('The live lesson has ended. Your board keeps everything.')}
       label();apply()},()=>{});

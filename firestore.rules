@@ -8,6 +8,10 @@ service cloud.firestore {
         && request.auth.token.email_verified == true;
     }
     function lessonPath(L) { return /databases/$(database)/documents/lessons/$(L); }
+    function isLocked(L) {
+      let p = /databases/$(database)/documents/lessons/$(L)/live/state;
+      return exists(p) && get(p).data.get('lock', false) == true;
+    }
     function isTeacher(L) {
       return signedIn() && exists(/databases/$(database)/documents/lessons/$(L)/teachers/$(request.auth.uid));
     }
@@ -54,12 +58,14 @@ service cloud.firestore {
           && request.resource.data.by == request.auth.uid
           && request.resource.data.keys().hasOnly(['tab', 'h', 't', 'by'])
           && request.resource.data.h is string && request.resource.data.h.size() < 300000
-          && request.resource.data.tab is string && request.resource.data.tab.size() < 16;
+          && request.resource.data.tab is string && request.resource.data.tab.size() < 16
+          && (!isLocked(L) || isTeacher(L));
         allow update: if signedIn() && resource.data.by == request.auth.uid
           && request.resource.data.by == request.auth.uid
           && request.resource.data.keys().hasOnly(['tab', 'h', 't', 'by'])
-          && request.resource.data.h is string && request.resource.data.h.size() < 300000;
-        allow delete: if signedIn() && (resource.data.by == request.auth.uid || isTeacher(L) || isAdmin());
+          && request.resource.data.h is string && request.resource.data.h.size() < 300000
+          && (!isLocked(L) || isTeacher(L));
+        allow delete: if signedIn() && ((resource.data.by == request.auth.uid && !isLocked(L)) || isTeacher(L) || isAdmin());
       }
     }
   }
