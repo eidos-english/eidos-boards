@@ -30,6 +30,9 @@
 .link code{font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:620px){.link{grid-template-columns:1fr auto auto}.link b{grid-column:1/-1}}
 .msg{color:var(--mu)}
+.sec{font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);margin:26px 0 10px}
+.brow{display:flex;gap:10px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:10px 0 0;margin:10px 0 0;flex-wrap:wrap}
+label.btn{display:inline-block}
 .err{color:var(--warn);font-weight:700}
 :root[data-theme="dark"] .adm h1{color:#fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .adm h1{color:#fff}}
@@ -48,12 +51,19 @@
     <div class="box">
       <div class="row">
         <input id="name" placeholder="Назва, наприклад: Влада + Ангеліна" maxlength="80" aria-label="Назва уроку">
-        <select id="unit" aria-label="Дошка"><option value="b1u1">Up · B1 Unit 1</option></select>
+        <select id="unit" aria-label="Дошка"></select>
         <button class="btn" id="newBtn" type="button">＋ Новий урок</button>
       </div>
       <p class="err" id="newErr" hidden></p>
     </div>
     <div id="list"><p class="msg">Завантаження…</p></div>
+    <h2 class="sec">Дошки</h2>
+    <div class="box">
+      <p class="msg">Щоб додати чи оновити дошку: на дошці в Claude натисніть «⬇ Export for site», збережіть файл <code>.json</code> і завантажте його тут. Уроки на цій дошці одразу побачать нову версію, записи на них лишаться.</p>
+      <div class="row"><label class="btn" for="importFile" tabindex="0" id="importLbl">⬆ Імпортувати дошку (.json)</label><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+      <p class="msg" id="importMsg" hidden></p>
+      <div id="boards"></div>
+    </div>
     <p class="meta"><span id="who"></span> · <a href="#" id="outBtn">вийти</a></p>
   </div>
   <p class="err" id="fatal" hidden></p>

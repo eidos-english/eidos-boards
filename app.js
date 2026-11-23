@@ -70,7 +70,7 @@ async function save(){
 /* ---------- routing ---------- */
 function route(){
   const [u,t]=location.hash.slice(1).split('/');
-  openUnit('b1u1',TABS.some(x=>x.id===t)&&(t!=='keys'||ROLE==='teacher')?t:'l1')
+  openUnit(FB&&FB.lesson.unit||'b1u1',TABS.some(x=>x.id===t)&&(t!=='keys'||ROLE==='teacher')?t:'l1')
 }
 addEventListener('hashchange',route);
 
@@ -94,10 +94,11 @@ function renderHub(){
 }
 
 /* ---------- unit loading ---------- */
-function loadUnit(id){
+async function loadUnit(id){
   window.EIDOS_UNITS=window.EIDOS_UNITS||{};
+  if(FB){const b=await FB.getBoard(id);if(b){window.EIDOS_UNITS[id]=b.unit;FILES=b.files;SAVED.units[id]=b.state||{};S.units[id]=JSON.parse(JSON.stringify(SAVED.units[id]));return b.unit}}
   if(window.EIDOS_UNITS[id])return Promise.resolve(window.EIDOS_UNITS[id]);
-  return new Promise((res,rej)=>{const s=document.createElement('script');s.src='units/'+id+'/unit.js?v='+VERSION;s.onload=()=>res(window.EIDOS_UNITS[id]);s.onerror=rej;document.head.append(s)});
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.charset='utf-8';s.src='units/'+id+'/unit.js?v='+VERSION;s.onload=()=>res(window.EIDOS_UNITS[id]);s.onerror=rej;document.head.append(s)});
 }
 async function openUnit(id,tab){
   if(unitId!==id){
@@ -107,7 +108,9 @@ async function openUnit(id,tab){
   }
   cur=tab;render();
 }
-const A=k=>'units/'+unitId+'/assets/'+U.ASSETS[k].f;
+let FILES=null;               // name -> blob URL for boards imported through the admin page
+const FILE=n=>FILES?(FILES[n]||''):'units/'+unitId+'/assets/'+n;
+const A=k=>FILE(U.ASSETS[k].f);
 
 /* ---------- board shell ---------- */
 function buildBoardShell(){
@@ -156,7 +159,7 @@ function buildBoardShell(){
   for(const k in m.card)st.setProperty('--'+k,m.card[k]);
   $('#stage').style.background=m.stage;
   const tabsEl=$('#tabs');
-  TABS.forEach(t=>{if(t.id==='keys'&&ROLE!=='teacher')return;const b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.dataset.id=t.id;b.textContent=t.label;b.onclick=()=>{if(location.hash!=='#b1u1/'+t.id)location.hash='b1u1/'+t.id;else{cur=t.id;render()}};tabsEl.append(b)});
+  TABS.forEach(t=>{if(t.id==='keys'&&ROLE!=='teacher')return;const b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.dataset.id=t.id;b.textContent=t.label;b.onclick=()=>{if(location.hash!=='#'+unitId+'/'+t.id)location.hash=unitId+'/'+t.id;else{cur=t.id;render()}};tabsEl.append(b)});
   initInk();initCamera();initEdit();refreshRole();$('#freeReset').onclick=freeReset;$('#startBtn').onclick=startLesson;$('#wipeBtn').onclick=wipeAll;initLive();
   new ResizeObserver(fit).observe($('#stage'));
 }
@@ -183,7 +186,7 @@ function clean(html){const d=new DOMParser().parseFromString('<div>'+html+'</div
 function cardEl(c,sec,i){const [kd,ti,body]=c;const el=document.createElement('div');el.className='card '+kd;
   const ov=(unitState().text[cur]||{})[i];
   /* listening scripts: only the title and the recording are shown, never the text */
-  const au=U.AUDIO[sec+'.'+i]||(/^Listening: Teacher Script/.test(ti)?U.AUDIO[sec]:null),auSrc=au&&(/^data:/.test(au)?au:'units/'+unitId+'/assets/'+au);
+  const au=U.AUDIO[sec+'.'+i]||(/^Listening: Teacher Script/.test(ti)?U.AUDIO[sec]:null),auSrc=au&&(/^data:/.test(au)?au:FILE(au));
   const audioOnly=!!au,auTitle=ti.replace(/\s*\((Teacher Reads|Voice Message)\)/g,'').replace(/:\s*Teacher Script/,'');
   el.innerHTML='<div class="hd"><span class="a"></span>'+(c.ex?'<span class="m">ex '+c.ex+'</span>':'')+'</div><div class="bd">'+(ov&&ov.bd!=null?clean(ov.bd):(audioOnly?'':build(body)))+'</div>';
   el.querySelector('.a').textContent=ov&&ov.a!=null?ov.a:(audioOnly?auTitle:ti);
@@ -217,7 +220,7 @@ function render(){
   const tab=TABS.find(t=>t.id===cur),les=LESSONS()[tab.sec];
   document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.id===cur));
   const scene=document.createElement('div');scene.className='scene';board.append(scene);
-  const bgUrl=us.bg[cur]?'units/'+unitId+'/assets/pics/'+us.bg[cur]+'.png':(U.BGS[cur]?A(U.BGS[cur]):null);
+  const bgUrl=us.bg[cur]?FILE('pics/'+us.bg[cur]+'.png'):(U.BGS[cur]?A(U.BGS[cur]):null);
   if(bgUrl){const im=document.createElement('img');im.className='bg';im.alt='';im.src=bgUrl;if(cur==='keys'&&!us.bg[cur])im.style.filter=U.meta.keysFilter;scene.append(im);
     if(U.ASSETS.logo&&!U.meta.grid)pendingLogo=true}
   else if(U.meta.scene&&(!U.meta.grid||cur==="keys")){const d=document.createElement('div');d.className='sceneLabel';d.innerHTML='<span class="e"></span><span class="t"></span><span class="s"></span>';
@@ -329,7 +332,7 @@ function addCharEl(ch,j){const it=document.createElement('div');it.className='it
       ['⤒',()=>{const a=list();a.push(a.splice(a.indexOf(ch),1)[0]);markDirty();render()}],['✕',()=>{const a=list();a.splice(a.indexOf(ch),1);markDirty();render()}]])});
   if(lastAdded&&lastAdded===ch){lastAdded=null;setTimeout(()=>it.querySelector('.cropBox')&&select(it,[['−',()=>{ch.w=Math.round(Math.max(40,ch.w*0.85));it.style.width=ch.w+'px';fitCrop();markDirty()}],['+',()=>{ch.w=Math.round(Math.min(1400,ch.w*1.18));it.style.width=ch.w+'px';fitCrop();markDirty()}],['✂️',()=>openCrop(ch)],['⧉',()=>{dupChar(ch)}],['⤒',()=>{const a=list();a.push(a.splice(a.indexOf(ch),1)[0]);markDirty();render()}],['✕',()=>{const a=list();a.splice(a.indexOf(ch),1);markDirty();render()}]]),0)}
   it.addEventListener('pointerdown',()=>{if(editing)copied=ch})}
-const charSrc=ch=>ch.k?(U.ASSETS[ch.k]?A(ch.k):''):'units/'+unitId+'/assets/pics/'+ch.id+'.png';
+const charSrc=ch=>ch.k?(U.ASSETS[ch.k]?A(ch.k):''):FILE('pics/'+ch.id+'.png');
 let copied=null,lastAdded=null;
 function addPic(ch){const us=unitState();const a=us.chars[cur]=us.chars[cur]||[];a.push(ch);lastAdded=ch;markDirty();render()}
 function dupChar(ch){const c=JSON.parse(JSON.stringify(ch));c.x+=40;c.y+=40;addPic(c);copied=c}

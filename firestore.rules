@@ -12,6 +12,16 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/lessons/$(L)/teachers/$(request.auth.uid));
     }
 
+    // boards imported in the admin page: everyone signed in reads, only the owner writes
+    match /boards/{B} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      match /files/{f} {
+        allow read: if signedIn();
+        allow write: if isAdmin();
+      }
+    }
+
     match /lessons/{L} {
       // the lesson id in the link is the secret: anyone with it may open the lesson
       allow get: if signedIn();
